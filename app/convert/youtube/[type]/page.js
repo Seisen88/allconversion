@@ -1,8 +1,10 @@
 'use client';
 
 import { use, useState } from 'react';
-import { Download, Loader2, ArrowLeft, CheckCircle, Video } from 'lucide-react';
+import { Download, Loader2, ArrowLeft, CheckCircle, Video, AlertCircle } from 'lucide-react';
 import Link from 'next/link';
+
+const BACKEND_URL = process.env.NEXT_PUBLIC_YOUTUBE_API_URL || '';
 
 export default function YouTubeConverterPage({ params }) {
   const { type } = use(params);
@@ -24,13 +26,18 @@ export default function YouTubeConverterPage({ params }) {
       setError('Invalid YouTube URL');
       return;
     }
+
+    if (!BACKEND_URL) {
+      setError('Backend not configured. Please deploy the backend first and set NEXT_PUBLIC_YOUTUBE_API_URL');
+      return;
+    }
     
     setError('');
     setIsProcessing(true);
     setDownloadProgress('Fetching video info...');
     
     try {
-      const response = await fetch(`/api/youtube/download?url=${encodeURIComponent(url)}`);
+      const response = await fetch(`${BACKEND_URL}/api/info?url=${encodeURIComponent(url)}`);
       const data = await response.json();
       
       if (!response.ok) {
@@ -54,7 +61,7 @@ export default function YouTubeConverterPage({ params }) {
     setDownloadProgress('Preparing download...');
     
     try {
-      const response = await fetch('/api/youtube/download', {
+      const response = await fetch(`${BACKEND_URL}/api/download`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -108,21 +115,41 @@ export default function YouTubeConverterPage({ params }) {
   return (
     <div className="w-full p-8 lg:p-12">
       <div className="max-w-3xl mx-auto">
-        <Link href="/youtube" className="inline-flex items-center gap-2 text-slate-400 hover:text-white mb-8">
+        <Link href="/youtube" className="inline-flex items-center gap-2 mb-8 transition-colors" style={{ color: 'var(--text-secondary)' }}>
           <ArrowLeft className="w-4 h-4" />
           Back to YouTube Downloads
         </Link>
 
         <div className="mb-12">
           <h1 className="text-4xl font-bold mb-3">YouTube to {to}</h1>
-          <p className="text-lg text-slate-400">
+          <p className="text-lg" style={{ color: 'var(--text-secondary)' }}>
             Download YouTube videos as {to} format
           </p>
         </div>
 
         <div className="space-y-6">
+          {!BACKEND_URL && (
+            <div className="p-6 rounded-xl" style={{
+              background: 'rgba(239, 68, 68, 0.1)',
+              border: '1px solid var(--destructive)',
+            }}>
+              <div className="flex gap-3">
+                <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" style={{ color: 'var(--destructive)' }} />
+                <div>
+                  <h3 className="font-bold mb-2" style={{ color: 'var(--destructive)' }}>Backend Not Configured</h3>
+                  <p className="text-sm mb-3" style={{ color: 'var(--text-secondary)' }}>
+                    YouTube downloads require a separate backend server. Please deploy the backend and set the <code>NEXT_PUBLIC_YOUTUBE_API_URL</code> environment variable.
+                  </p>
+                  <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
+                    See <code>/backend/README.md</code> for deployment instructions.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
           <div>
-            <label className="block text-sm text-slate-400 mb-3">YouTube URL</label>
+            <label className="block text-sm mb-3" style={{ color: 'var(--text-secondary)' }}>YouTube URL</label>
             <input
               type="url"
               value={url}
@@ -130,19 +157,25 @@ export default function YouTubeConverterPage({ params }) {
               onKeyPress={(e) => e.key === 'Enter' && !videoInfo && fetchVideoInfo()}
               placeholder="https://youtube.com/watch?v=..."
               className="input-field"
-              disabled={isProcessing}
+              disabled={isProcessing || !BACKEND_URL}
             />
           </div>
 
           {error && (
-            <div className="p-4 bg-red-950/30 border border-red-900 rounded-lg">
-              <p className="text-sm text-red-400">{error}</p>
+            <div className="p-4 rounded-lg" style={{
+              background: 'rgba(239, 68, 68, 0.1)',
+              border: '1px solid var(--destructive)',
+            }}>
+              <p className="text-sm" style={{ color: 'var(--destructive)' }}>{error}</p>
             </div>
           )}
 
           {downloadProgress && (
-            <div className="p-4 bg-blue-950/30 border border-blue-900 rounded-lg">
-              <p className="text-sm text-blue-400 flex items-center gap-2">
+            <div className="p-4 rounded-lg" style={{
+              background: 'rgba(6, 182, 212, 0.1)',
+              border: '1px solid var(--tertiary)',
+            }}>
+              <p className="text-sm flex items-center gap-2" style={{ color: 'var(--tertiary)' }}>
                 <Loader2 className="w-4 h-4 animate-spin" />
                 {downloadProgress}
               </p>
@@ -152,7 +185,7 @@ export default function YouTubeConverterPage({ params }) {
           {!videoInfo && (
             <button 
               onClick={fetchVideoInfo} 
-              disabled={isProcessing || !url} 
+              disabled={isProcessing || !url || !BACKEND_URL} 
               className="btn-primary w-full"
             >
               {isProcessing ? (
@@ -171,22 +204,22 @@ export default function YouTubeConverterPage({ params }) {
 
           {videoInfo && (
             <>
-              <div className="bg-slate-900 border border-slate-800 rounded-lg p-6 space-y-4">
+              <div className="card">
                 {videoInfo.thumbnail && (
                   <img 
                     src={videoInfo.thumbnail} 
                     alt={videoInfo.title}
-                    className="w-full rounded-lg"
+                    className="w-full rounded-lg mb-4"
                   />
                 )}
                 <div>
                   <h3 className="text-white font-bold text-lg mb-2">{videoInfo.title}</h3>
-                  <p className="text-slate-400 text-sm">By {videoInfo.author}</p>
-                  <p className="text-slate-500 text-sm mt-1">
+                  <p className="text-sm mb-1" style={{ color: 'var(--text-secondary)' }}>By {videoInfo.author}</p>
+                  <p className="text-sm" style={{ color: 'var(--text-tertiary)' }}>
                     Duration: {Math.floor(videoInfo.duration / 60)}:{(videoInfo.duration % 60).toString().padStart(2, '0')}
                   </p>
                 </div>
-                <div className="flex items-center gap-2 text-emerald-500 text-sm">
+                <div className="flex items-center gap-2 mt-4 text-sm" style={{ color: 'var(--tertiary)' }}>
                   <CheckCircle className="w-4 h-4" />
                   Ready to download as {to}
                 </div>
@@ -217,8 +250,11 @@ export default function YouTubeConverterPage({ params }) {
             </>
           )}
 
-          <div className="p-4 bg-blue-950/20 border border-blue-900/50 rounded-lg">
-            <p className="text-xs text-blue-400">
+          <div className="p-4 rounded-lg" style={{
+            background: 'rgba(6, 182, 212, 0.1)',
+            border: '1px solid var(--tertiary)',
+          }}>
+            <p className="text-xs" style={{ color: 'var(--tertiary)' }}>
               ℹ️ Large videos may take a few minutes to process. Please be patient.
             </p>
           </div>

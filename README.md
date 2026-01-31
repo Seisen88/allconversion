@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # All Converter - Universal File Conversion Platform
 
 A modern, minimalist web application for converting images, audio, video files, and downloading YouTube content. Built with Next.js, React, and Tailwind CSS.
@@ -175,3 +176,6 @@ For issues and questions, please open an issue on the repository.
 ---
 
 Built with ❤️ using Next.js and Tailwind CSS
+=======
+# allconversion
+>>>>>>> 5c743f76e26c40a4379ecad173eb946594471650

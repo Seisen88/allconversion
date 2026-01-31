@@ -1,92 +1,123 @@
-import ytdl from 'ytdl-core';
+import youtubedl from 'youtube-dl-exec';
 import { NextResponse } from 'next/server';
+import { writeFile, unlink } from 'fs/promises';
+import { readFileSync } from 'fs';
+import path from 'path';
+import { tmpdir } from 'os';
+
+// Helper to add CORS headers
+function addCorsHeaders(response) {
+  response.headers.set('Access-Control-Allow-Origin', '*');
+  response.headers.set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  response.headers.set('Access-Control-Allow-Headers', 'Content-Type');
+  return response;
+}
+
+export async function OPTIONS() {
+  return addCorsHeaders(new NextResponse(null, { status: 200 }));
+}
 
 export async function POST(request) {
+  let outputPath = null;
+  
   try {
     const { url, format } = await request.json();
     
     if (!url) {
-      return NextResponse.json({ error: 'URL is required' }, { status: 400 });
+      return addCorsHeaders(NextResponse.json({ error: 'URL is required' }, { status: 400 }));
     }
     
     // Validate YouTube URL
-    if (!ytdl.validateURL(url)) {
-      return NextResponse.json({ error: 'Invalid YouTube URL' }, { status: 400 });
+    if (!url.includes('youtube.com') && !url.includes('youtu.be')) {
+      return addCorsHeaders(NextResponse.json({ error: 'Invalid YouTube URL' }, { status: 400 }));
     }
     
-    // Get video info
-    const info = await ytdl.getInfo(url);
-    const title = info.videoDetails.title.replace(/[^\w\s-]/g, '');
-    
-    // Determine format and quality
-    let options = {};
     const formatLower = format.toLowerCase();
+    const tempDir = tmpdir();
+    const timestamp = Date.now();
+    outputPath = path.join(tempDir, `youtube_${timestamp}.%(ext)s`);
     
+    // Download options
+    const options = {
+      output: outputPath,
+      noCheckCertificates: true,
+      noWarnings: true,
+      preferFreeFormats: true,
+      addHeader: [
+        'referer:youtube.com',
+        'user-agent:Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+      ]
+    };
+    
+    // Format-specific options
     if (['mp3', 'wav', 'aac', 'flac'].includes(formatLower)) {
       // Audio only
-      options = {
-        quality: 'highestaudio',
-        filter: 'audioonly',
-      };
+      options.extractAudio = true;
+      options.audioFormat = formatLower === 'mp3' ? 'mp3' : formatLower;
+      options.audioQuality = 0; // Best quality
     } else {
-      // Video with audio
-      options = {
-        quality: 'highest',
-        filter: 'audioandvideo',
-      };
+      // Video
+      options.format = 'best';
+      if (formatLower === 'mp4') {
+        options.mergeOutputFormat = 'mp4';
+      }
     }
     
-    // Create stream
-    const stream = ytdl(url, options);
+    // Execute download
+    await youtubedl(url, options);
     
-    // Convert stream to buffer
-    const chunks = [];
-    for await (const chunk of stream) {
-      chunks.push(chunk);
-    }
-    const buffer = Buffer.concat(chunks);
+    // Find the downloaded file
+    const actualPath = outputPath.replace('.%(ext)s', `.${formatLower}`);
+    const buffer = readFileSync(actualPath);
+    
+    // Clean up
+    await unlink(actualPath);
     
     // Determine content type
     let contentType;
-    let extension;
-    
     switch (formatLower) {
       case 'mp3':
         contentType = 'audio/mpeg';
-        extension = 'mp3';
         break;
       case 'mp4':
         contentType = 'video/mp4';
-        extension = 'mp4';
         break;
       case 'wav':
         contentType = 'audio/wav';
-        extension = 'wav';
         break;
       case 'webm':
         contentType = 'video/webm';
-        extension = 'webm';
         break;
       default:
         contentType = 'video/mp4';
-        extension = 'mp4';
     }
     
     // Return file
-    return new NextResponse(buffer, {
+    const response = new NextResponse(buffer, {
       headers: {
         'Content-Type': contentType,
-        'Content-Disposition': `attachment; filename="${title}.${extension}"`,
+        'Content-Disposition': `attachment; filename="video.${formatLower}"`,
         'Content-Length': buffer.length.toString(),
       },
     });
     
+    return addCorsHeaders(response);
+    
   } catch (error) {
     console.error('YouTube download error:', error);
-    return NextResponse.json(
-      { error: 'Failed to download video. Please check the URL and try again.' },
+    
+    // Clean up on error
+    if (outputPath) {
+      try {
+        const actualPath = outputPath.replace('.%(ext)s', `.${format.toLowerCase()}`);
+        await unlink(actualPath);
+      } catch {}
+    }
+    
+    return addCorsHeaders(NextResponse.json(
+      { error: error.message || 'Failed to download video. Please try again.' },
       { status: 500 }
-    );
+    ));
   }
 }
 
@@ -97,27 +128,32 @@ export async function GET(request) {
     const url = searchParams.get('url');
     
     if (!url) {
-      return NextResponse.json({ error: 'URL is required' }, { status: 400 });
+      return addCorsHeaders(NextResponse.json({ error: 'URL is required' }, { status: 400 }));
     }
     
-    if (!ytdl.validateURL(url)) {
-      return NextResponse.json({ error: 'Invalid YouTube URL' }, { status: 400 });
+    if (!url.includes('youtube.com') && !url.includes('youtu.be')) {
+      return addCorsHeaders(NextResponse.json({ error: 'Invalid YouTube URL' }, { status: 400 }));
     }
     
-    const info = await ytdl.getInfo(url);
-    
-    return NextResponse.json({
-      title: info.videoDetails.title,
-      duration: info.videoDetails.lengthSeconds,
-      thumbnail: info.videoDetails.thumbnails[0]?.url,
-      author: info.videoDetails.author.name,
+    const info = await youtubedl(url, {
+      dumpSingleJson: true,
+      noCheckCertificates: true,
+      noWarnings: true,
+      preferFreeFormats: true,
     });
+    
+    return addCorsHeaders(NextResponse.json({
+      title: info.title,
+      duration: info.duration,
+      thumbnail: info.thumbnail,
+      author: info.uploader || info.channel,
+    }));
     
   } catch (error) {
     console.error('YouTube info error:', error);
-    return NextResponse.json(
-      { error: 'Failed to get video info' },
+    return addCorsHeaders(NextResponse.json(
+      { error: error.message || 'Failed to get video info.' },
       { status: 500 }
-    );
+    ));
   }
 }

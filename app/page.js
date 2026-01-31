@@ -1,8 +1,8 @@
 import Link from 'next/link';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, Sparkles } from 'lucide-react';
 
 const conversionOptions = [
-  // Image conversions - All combinations
+  // Image conversions
   { from: 'PNG', to: 'JPG', href: '/convert/image/png-to-jpg', category: 'Image' },
   { from: 'PNG', to: 'WEBP', href: '/convert/image/png-to-webp', category: 'Image' },
   { from: 'PNG', to: 'GIF', href: '/convert/image/png-to-gif', category: 'Image' },
@@ -109,50 +109,89 @@ export default function Home() {
   const youtubeConversions = conversionOptions.filter(opt => opt.category === 'YouTube');
 
   return (
-    <div className="w-full p-8 lg:p-12">
+    <div className="w-full min-h-screen p-8 lg:p-12">
       <div className="max-w-7xl mx-auto">
-        <div className="mb-12">
-          <h1 className="text-4xl font-bold mb-3">All Converter</h1>
-          <p className="text-lg text-slate-400">
-            Choose a conversion type to get started
+        {/* Hero Section */}
+        <div className="mb-16 text-center">
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full mb-6" style={{
+            background: 'var(--bg-tertiary)',
+            border: '1px solid var(--border-primary)',
+          }}>
+            <Sparkles className="w-4 h-4" style={{ color: 'var(--tertiary)' }} />
+            <span className="text-sm font-medium" style={{ color: 'var(--text-secondary)' }}>
+              90+ Format Conversions
+            </span>
+          </div>
+          
+          <h1 className="text-5xl lg:text-6xl font-bold mb-4">
+            <span className="text-gradient">All Converter</span>
+          </h1>
+          <p className="text-xl" style={{ color: 'var(--text-secondary)' }}>
+            Convert images, audio, video files and download from YouTube
           </p>
         </div>
 
         {/* Image Conversions */}
-        <div className="mb-12">
-          <h2 className="text-2xl font-bold mb-6">Image Conversions</h2>
+        <div className="mb-16">
+          <h2 className="text-3xl font-bold mb-6 flex items-center gap-3">
+            <div className="w-1 h-8 rounded-full" style={{ background: 'var(--primary)' }} />
+            Image Conversions
+          </h2>
           <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
             {imageConversions.map((option, index) => (
               <Link
                 key={index}
                 href={option.href}
-                className="bg-slate-900 border border-slate-800 rounded-lg p-4 hover:border-emerald-600 transition-colors group"
+                className="group relative overflow-hidden rounded-xl p-4 transition-all hover:scale-105"
+                style={{
+                  background: 'var(--bg-elevated)',
+                  border: '1px solid var(--border-primary)',
+                }}
               >
-                <div className="flex items-center justify-center gap-2 text-center">
-                  <span className="font-bold text-sm text-white">{option.from}</span>
-                  <ArrowRight className="w-3 h-3 text-slate-600 group-hover:text-emerald-500 transition-colors" />
-                  <span className="font-bold text-sm text-white">{option.to}</span>
+                <div className="flex items-center justify-center gap-2">
+                  <span className="font-bold text-sm">{option.from}</span>
+                  <ArrowRight className="w-3 h-3 transition-colors" style={{ color: 'var(--text-tertiary)' }} />
+                  <span className="font-bold text-sm">{option.to}</span>
                 </div>
+                <div 
+                  className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"
+                  style={{
+                    background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(139, 92, 246, 0.1))',
+                  }}
+                />
               </Link>
             ))}
           </div>
         </div>
 
         {/* Media Conversions */}
-        <div className="mb-12">
-          <h2 className="text-2xl font-bold mb-6">Audio & Video Conversions</h2>
+        <div className="mb-16">
+          <h2 className="text-3xl font-bold mb-6 flex items-center gap-3">
+            <div className="w-1 h-8 rounded-full" style={{ background: 'var(--secondary)' }} />
+            Audio & Video Conversions
+          </h2>
           <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
             {mediaConversions.map((option, index) => (
               <Link
                 key={index}
                 href={option.href}
-                className="bg-slate-900 border border-slate-800 rounded-lg p-4 hover:border-emerald-600 transition-colors group"
+                className="group relative overflow-hidden rounded-xl p-4 transition-all hover:scale-105"
+                style={{
+                  background: 'var(--bg-elevated)',
+                  border: '1px solid var(--border-primary)',
+                }}
               >
-                <div className="flex items-center justify-center gap-2 text-center">
-                  <span className="font-bold text-sm text-white">{option.from}</span>
-                  <ArrowRight className="w-3 h-3 text-slate-600 group-hover:text-emerald-500 transition-colors" />
-                  <span className="font-bold text-sm text-white">{option.to}</span>
+                <div className="flex items-center justify-center gap-2">
+                  <span className="font-bold text-sm">{option.from}</span>
+                  <ArrowRight className="w-3 h-3 transition-colors" style={{ color: 'var(--text-tertiary)' }} />
+                  <span className="font-bold text-sm">{option.to}</span>
                 </div>
+                <div 
+                  className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"
+                  style={{
+                    background: 'linear-gradient(135deg, rgba(139, 92, 246, 0.1), rgba(6, 182, 212, 0.1))',
+                  }}
+                />
               </Link>
             ))}
           </div>
@@ -160,19 +199,32 @@ export default function Home() {
 
         {/* YouTube Downloads */}
         <div>
-          <h2 className="text-2xl font-bold mb-6">YouTube Downloads</h2>
+          <h2 className="text-3xl font-bold mb-6 flex items-center gap-3">
+            <div className="w-1 h-8 rounded-full" style={{ background: 'var(--tertiary)' }} />
+            YouTube Downloads
+          </h2>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             {youtubeConversions.map((option, index) => (
               <Link
                 key={index}
                 href={option.href}
-                className="bg-slate-900 border border-slate-800 rounded-lg p-4 hover:border-emerald-600 transition-colors group"
+                className="group relative overflow-hidden rounded-xl p-4 transition-all hover:scale-105"
+                style={{
+                  background: 'var(--bg-elevated)',
+                  border: '1px solid var(--border-primary)',
+                }}
               >
-                <div className="flex items-center justify-center gap-2 text-center">
-                  <span className="font-bold text-sm text-white">{option.from}</span>
-                  <ArrowRight className="w-3 h-3 text-slate-600 group-hover:text-emerald-500 transition-colors" />
-                  <span className="font-bold text-sm text-white">{option.to}</span>
+                <div className="flex items-center justify-center gap-2">
+                  <span className="font-bold text-sm">{option.from}</span>
+                  <ArrowRight className="w-3 h-3 transition-colors" style={{ color: 'var(--text-tertiary)' }} />
+                  <span className="font-bold text-sm">{option.to}</span>
                 </div>
+                <div 
+                  className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"
+                  style={{
+                    background: 'linear-gradient(135deg, rgba(6, 182, 212, 0.1), rgba(59, 130, 246, 0.1))',
+                  }}
+                />
               </Link>
             ))}
           </div>
